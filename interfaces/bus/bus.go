@@ -1,6 +1,7 @@
 package bus
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -22,7 +23,7 @@ type (
 		TrackBusLocation(query dto.BusLocationQuery, c *websocket.Conn) (dto.BusLocationMessage, error)
 		StreamBusLocation(query dto.BusLocationQuery) []dto.TrackLocationResponse
 		BusInfo(id string) (dto.BusInfoResponse, error)
-		TrackBusLocationFirebase(data dto.BusLocationMessageString, id string) error
+		TrackBusLocationFirebase(data dto.BusLocationMessage, id string) error
 	}
 	viewService struct {
 		application application.Holder
@@ -341,15 +342,15 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 /**
  * Track bus location firebase
  */
- func (v *viewService) TrackBusLocationFirebase(data dto.BusLocationMessageString, id string) error {
+ func (v *viewService) TrackBusLocationFirebase(data dto.BusLocationMessage, id string) error {
 
 	location := dto.BusLocationString{
 		BusID:     id,
-		Lat:       data.Lat,
-		Long:      data.Long,
+		Lat:       fmt.Sprintf("%g", data.Lat),
+		Long:      fmt.Sprintf("%g", data.Long),
 		Timestamp: time.Now(),
-		Speed:     data.Speed,
-		Heading:   data.Heading,
+		Speed:     fmt.Sprintf("%g", data.Speed),
+		Heading:   fmt.Sprintf("%g", data.Heading),
 	}
 
 	err := v.application.BusService.InsertBusLocationFirebase(&location)

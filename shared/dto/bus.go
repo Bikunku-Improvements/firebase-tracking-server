@@ -135,13 +135,6 @@ type (
 		Heading float64 `json:"heading"`
 	}
 
-	BusLocationMessageString struct {
-		Long    string `json:"long"`
-		Lat     string `json:"lat"`
-		Speed   string `json:"speed"`
-		Heading string `json:"heading"`
-	}
-
 	TrackLocationResponse struct {
 		ID       uint      `json:"id"`
 		Number   int       `json:"number"`

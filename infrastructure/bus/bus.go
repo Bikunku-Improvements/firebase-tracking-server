@@ -228,7 +228,7 @@ func (c *Controller) trackBusLocation(ctx *websocket.Conn) {
 // @Router /bus/track/{id} [post]
 func (c *Controller) trackBusLocationFirebase(ctx *fiber.Ctx) error {
 	var (
-		body dto.BusLocationMessageString
+		body dto.BusLocationMessage
 	)
 
 	err := common.DoCommonRequest(ctx, &body)
