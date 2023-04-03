@@ -56,6 +56,15 @@ type (
 		Heading   float64   `gorm:"column:heading"`
 	}
 
+	BusLocationString struct {
+		BusID     string
+		Long      string
+		Lat       string
+		Timestamp time.Time
+		Speed     string
+		Heading   string
+	}
+
 	// CreateBusDto CreateBusDto
 	CreateBusDto struct {
 		Number   int    `json:"number" validate:"required"`
@@ -124,6 +133,13 @@ type (
 		Lat     float64 `json:"lat"`
 		Speed   float64 `json:"speed"`
 		Heading float64 `json:"heading"`
+	}
+
+	BusLocationMessageString struct {
+		Long    string `json:"long"`
+		Lat     string `json:"lat"`
+		Speed   string `json:"speed"`
+		Heading string `json:"heading"`
 	}
 
 	TrackLocationResponse struct {

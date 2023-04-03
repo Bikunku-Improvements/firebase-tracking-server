@@ -32,7 +32,7 @@ func (c *Controller) Routes(app *fiber.App) {
 		return fiber.ErrUpgradeRequired
 	})
 	bus.Get("/stream", websocket.New(c.trackBusLocation))
-	bus.Get("/track/:id", c.trackBusLocationFirebase)
+	bus.Post("/track/:id", c.trackBusLocationFirebase)
 }
 
 // All godoc
@@ -225,13 +225,22 @@ func (c *Controller) trackBusLocation(ctx *websocket.Conn) {
 // @Param id path string true "Bus ID"
 // @Accept  json
 // @Produce  json
-// @Router /bus/track/{id} [get]
+// @Router /bus/track/{id} [post]
 func (c *Controller) trackBusLocationFirebase(ctx *fiber.Ctx) error {
+	var (
+		body dto.BusLocationMessageString
+	)
+
+	err := common.DoCommonRequest(ctx, &body)
+	if err != nil {
+		return common.DoCommonErrorResponse(ctx, err)
+	}
+
 	id := ctx.Params("id")
 
-	c.Shared.Logger.Infof("tracking bus, data: %s", id)
+	c.Shared.Logger.Infof("track bus, data: %s", body)
 
-	err := c.Interfaces.BusViewService.TrackBusLocationFirebase(id)
+	err = c.Interfaces.BusViewService.TrackBusLocationFirebase(body, id)
 	if err != nil {
 		return common.DoCommonErrorResponse(ctx, err)
 	}
