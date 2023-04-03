@@ -32,6 +32,7 @@ func (c *Controller) Routes(app *fiber.App) {
 		return fiber.ErrUpgradeRequired
 	})
 	bus.Get("/stream", websocket.New(c.trackBusLocation))
+	bus.Get("/track/:id", c.trackBusLocationFirebase)
 }
 
 // All godoc
@@ -215,6 +216,27 @@ func (c *Controller) trackBusLocation(ctx *websocket.Conn) {
 			time.Sleep(1 * time.Second)
 		}
 	}
+}
+
+// All godoc
+// @Tags Bus
+// @Summary Track bus location using firebase
+// @Description Put all mandatory parameter
+// @Param id path string true "Bus ID"
+// @Accept  json
+// @Produce  json
+// @Router /bus/track/{id} [get]
+func (c *Controller) trackBusLocationFirebase(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+
+	c.Shared.Logger.Infof("tracking bus, data: %s", id)
+
+	err := c.Interfaces.BusViewService.TrackBusLocationFirebase(id)
+	if err != nil {
+		return common.DoCommonErrorResponse(ctx, err)
+	}
+
+	return common.DoCommonSuccessResponse(ctx, nil)
 }
 
 func NewController(interfaces interfaces.Holder, shared shared.Holder) Controller {

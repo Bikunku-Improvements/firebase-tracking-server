@@ -22,6 +22,7 @@ type (
 		TrackBusLocation(query dto.BusLocationQuery, c *websocket.Conn) (dto.BusLocationMessage, error)
 		StreamBusLocation(query dto.BusLocationQuery) []dto.TrackLocationResponse
 		BusInfo(id string) (dto.BusInfoResponse, error)
+		TrackBusLocationFirebase(id string) error
 	}
 	viewService struct {
 		application application.Holder
@@ -335,6 +336,18 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 		return true
 	})
 	return res
+}
+
+/**
+ * Track bus location firebase
+ */
+ func (v *viewService) TrackBusLocationFirebase(id string) error {
+	err := v.application.BusService.InsertBusLocationFirebase(id)
+	if err != nil {
+		v.shared.Logger.Errorf("error when tracking bus, err: %s", err.Error())
+		return err
+	}
+	return nil
 }
 
 func NewViewService(application application.Holder, shared shared.Holder) ViewService {

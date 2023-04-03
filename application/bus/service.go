@@ -3,6 +3,12 @@ package bus
 import (
 	"tracking-server/shared"
 	"tracking-server/shared/dto"
+
+	"context"
+	"log"
+	"time"
+
+	firebase "firebase.google.com/go"
 )
 
 type (
@@ -15,6 +21,7 @@ type (
 		InsertBusLocation(location *dto.BusLocation) error
 		FindAllBus(bus *[]dto.Bus) error
 		FindBusLatestLocation(id uint, location *dto.BusLocation) error
+		InsertBusLocationFirebase(id string) error
 	}
 	service struct {
 		shared shared.Holder
@@ -58,6 +65,44 @@ func (s *service) FindAllBus(bus *[]dto.Bus) error {
 
 func (s *service) FindBusLatestLocation(id uint, location *dto.BusLocation) error {
 	err := s.shared.DB.Where("bus_id = ?", id).Order("timestamp DESC").First(location).Error
+	return err
+}
+
+func (s *service) InsertBusLocationFirebase(id string) error {
+	// Connect Google Cloud
+	// Use the application default credentials
+	ctx := context.Background()
+	conf := &firebase.Config{ProjectID: "ta-tracking-f43e5"}
+	app, err := firebase.NewApp(ctx, conf)
+	if err != nil {
+		log.Fatalln(err)
+		return err
+	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		log.Fatalln(err)
+		return err
+	}
+	defer client.Close()
+
+	// Execution
+	log.Printf("Setting collection")
+	res, err := client.Collection("bus_locations").Doc(id).Set(ctx, map[string]interface{}{
+		"bus_id":    id,
+		"longitude": "124",
+		"latitude": id,
+		"timestamp": time.Now(),
+		"speed": "0",
+		"heading": "0",
+	})
+	log.Printf("Res data: %s", res)
+	if err != nil {
+		// Handle any errors in an appropriate way, such as returning them.
+		log.Printf("An error has occurred: %s", err)
+	}
+
+	// err := s.shared.DB.Delete(&dto.Bus{}, id).Error
 	return err
 }
 
