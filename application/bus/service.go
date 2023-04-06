@@ -95,7 +95,7 @@ func (s *service) InsertBusLocationFirebase(id string, location *dto.BusLocation
 	}
 
 	log.Printf("Setting collection")
-	res, err := client.Collection("bus_locations").Doc(id).Set(ctx, map[string]interface{}{
+	res, err := client.Collection("buses").Doc(id).Collection("locations").Doc(id).Set(ctx, map[string]interface{}{
 		"bus_id": idInt,
 		"longitude": location.Long,
 		"latitude": location.Lat,
