@@ -1,7 +1,6 @@
 package bus
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -343,17 +342,15 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
  * Track bus location firebase
  */
  func (v *viewService) TrackBusLocationFirebase(data dto.BusLocationMessage, id string) error {
-
-	location := dto.BusLocationString{
-		BusID:     id,
-		Lat:       fmt.Sprintf("%g", data.Lat),
-		Long:      fmt.Sprintf("%g", data.Long),
+	location := dto.BusLocation{
+		Lat:       data.Lat,
+		Long:      data.Long,
 		Timestamp: time.Now(),
-		Speed:     fmt.Sprintf("%g", data.Speed),
-		Heading:   fmt.Sprintf("%g", data.Heading),
+		Speed:     data.Speed,
+		Heading:   data.Heading,
 	}
 
-	err := v.application.BusService.InsertBusLocationFirebase(&location)
+	err := v.application.BusService.InsertBusLocationFirebase(id, &location)
 	if err != nil {
 		v.shared.Logger.Errorf("error when tracking bus, err: %s", err.Error())
 		return err

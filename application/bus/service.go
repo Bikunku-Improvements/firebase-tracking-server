@@ -1,6 +1,8 @@
 package bus
 
 import (
+	"fmt"
+	"strconv"
 	"tracking-server/shared"
 	"tracking-server/shared/dto"
 
@@ -20,7 +22,7 @@ type (
 		InsertBusLocation(location *dto.BusLocation) error
 		FindAllBus(bus *[]dto.Bus) error
 		FindBusLatestLocation(id uint, location *dto.BusLocation) error
-		InsertBusLocationFirebase(location *dto.BusLocationString) error
+		InsertBusLocationFirebase(id string, location *dto.BusLocation) error
 	}
 	service struct {
 		shared shared.Holder
@@ -67,7 +69,7 @@ func (s *service) FindBusLatestLocation(id uint, location *dto.BusLocation) erro
 	return err
 }
 
-func (s *service) InsertBusLocationFirebase(location *dto.BusLocationString) error {
+func (s *service) InsertBusLocationFirebase(id string, location *dto.BusLocation) error {
 	// Connect Google Cloud
 	// Use the application default credentials
 	ctx := context.Background()
@@ -86,17 +88,15 @@ func (s *service) InsertBusLocationFirebase(location *dto.BusLocationString) err
 	defer client.Close()
 
 	// Execution
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		fmt.Println("Error during conversion")
+		return err
+	}
+
 	log.Printf("Setting collection")
-	// res, err := client.Collection("bus_locations").Doc(id).Set(ctx, map[string]interface{}{
-	// 	"bus_id":    id,
-	// 	"longitude": "124",
-	// 	"latitude": id,
-	// 	"timestamp": time.Now(),
-	// 	"speed": "0",
-	// 	"heading": "0",
-	// })
-	res, err := client.Collection("bus_locations").Doc(location.BusID).Set(ctx, map[string]interface{}{
-		"bus_id": location.BusID,
+	res, err := client.Collection("bus_locations").Doc(id).Set(ctx, map[string]interface{}{
+		"bus_id": idInt,
 		"longitude": location.Long,
 		"latitude": location.Lat,
 		"timestamp": location.Timestamp,
