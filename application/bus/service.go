@@ -94,8 +94,13 @@ func (s *service) InsertBusLocationFirebase(id string, location *dto.BusLocation
 		return err
 	}
 
-	log.Printf("Setting collection")
-	res, err := client.Collection("buses").Doc(id).Collection("locations").Doc(id).Set(ctx, map[string]interface{}{
+	// For adding multiple docs in locations
+	ref := client.Collection("buses").Doc(id).Collection("locations").NewDoc()
+
+	// For updating 1 doc in locations
+	// ref := client.Collection("buses").Doc(id).Collection("locations").Doc(id)
+
+	_, err = ref.Set(ctx, map[string]interface{}{
 		"bus_id": idInt,
 		"longitude": location.Long,
 		"latitude": location.Lat,
@@ -103,7 +108,6 @@ func (s *service) InsertBusLocationFirebase(id string, location *dto.BusLocation
 		"speed": location.Speed,
 		"heading": location.Speed,
 	})
-	log.Printf("Res data: %s", res)
 	if err != nil {
 		// Handle any errors in an appropriate way, such as returning them.
 		log.Printf("An error has occurred: %s", err)
