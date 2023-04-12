@@ -22,7 +22,7 @@ type (
 		InsertBusLocation(location *dto.BusLocation) error
 		FindAllBus(bus *[]dto.Bus) error
 		FindBusLatestLocation(id uint, location *dto.BusLocation) error
-		InsertBusLocationFirebase(id string, location *dto.BusLocation) error
+		InsertBusLocationFirebase(id string, location *dto.BusLocationFirebase) error
 	}
 	service struct {
 		shared shared.Holder
@@ -69,7 +69,7 @@ func (s *service) FindBusLatestLocation(id uint, location *dto.BusLocation) erro
 	return err
 }
 
-func (s *service) InsertBusLocationFirebase(id string, location *dto.BusLocation) error {
+func (s *service) InsertBusLocationFirebase(id string, location *dto.BusLocationFirebase) error {
 	// Connect Google Cloud
 	// Use the application default credentials
 	ctx := context.Background()
@@ -95,13 +95,18 @@ func (s *service) InsertBusLocationFirebase(id string, location *dto.BusLocation
 	}
 
 	// For adding multiple docs in locations
-	ref := client.Collection("buses").Doc(id).Collection("locations").NewDoc()
+	ref := client.Collection("bus_locations").NewDoc()
 
 	// For updating 1 doc in locations
 	// ref := client.Collection("buses").Doc(id).Collection("locations").Doc(id)
 
 	_, err = ref.Set(ctx, map[string]interface{}{
 		"bus_id": idInt,
+		"number": location.Number,
+		"plate": location.Plate,
+		"status": location.Status,
+		"route": location.Route,
+		"isActive": location.IsActive,
 		"longitude": location.Long,
 		"latitude": location.Lat,
 		"timestamp": location.Timestamp,

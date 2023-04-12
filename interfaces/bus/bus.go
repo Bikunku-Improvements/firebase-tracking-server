@@ -22,7 +22,7 @@ type (
 		TrackBusLocation(query dto.BusLocationQuery, c *websocket.Conn) (dto.BusLocationMessage, error)
 		StreamBusLocation(query dto.BusLocationQuery) []dto.TrackLocationResponse
 		BusInfo(id string) (dto.BusInfoResponse, error)
-		TrackBusLocationFirebase(data dto.BusLocationMessage, id string) error
+		TrackBusLocationFirebase(data dto.BusLocationMessageFirebase, id string) error
 	}
 	viewService struct {
 		application application.Holder
@@ -341,8 +341,13 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 /**
  * Track bus location firebase
  */
- func (v *viewService) TrackBusLocationFirebase(data dto.BusLocationMessage, id string) error {
-	location := dto.BusLocation{
+ func (v *viewService) TrackBusLocationFirebase(data dto.BusLocationMessageFirebase, id string) error {
+	location := dto.BusLocationFirebase{
+		Number:    data.Number,
+		Plate:     data.Plate,
+		Status:    data.Status,
+		Route:     data.Route,
+		IsActive:  data.IsActive,
 		Lat:       data.Lat,
 		Long:      data.Long,
 		Timestamp: time.Now(),
