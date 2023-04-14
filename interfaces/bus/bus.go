@@ -22,7 +22,7 @@ type (
 		TrackBusLocation(query dto.BusLocationQuery, c *websocket.Conn) (dto.BusLocationMessage, error)
 		StreamBusLocation(query dto.BusLocationQuery) []dto.TrackLocationResponse
 		BusInfo(id string) (dto.BusInfoResponse, error)
-		TrackBusLocationFirebase(data dto.BusLocationMessageFirebase, id string) error
+		TrackBusLocationFirebase(data dto.BusLocationMessage, token string) error
 	}
 	viewService struct {
 		application application.Holder
@@ -341,21 +341,32 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 /**
  * Track bus location firebase
  */
- func (v *viewService) TrackBusLocationFirebase(data dto.BusLocationMessageFirebase, id string) error {
-	location := dto.BusLocationFirebase{
-		Number:    data.Number,
-		Plate:     data.Plate,
-		Status:    data.Status,
-		Route:     data.Route,
-		IsActive:  data.IsActive,
-		Lat:       data.Lat,
+ func (v *viewService) TrackBusLocationFirebase(data dto.BusLocationMessage, token string) error {
+	var (
+		bus = &dto.Bus{}
+	)
+
+	username, err := common.ExtractTokenData(token, v.shared.Env)
+	if err != nil {
+		v.shared.Logger.Errorf("error when extract jwt, err: %s", err.Error())
+	}
+
+	err = v.application.BusService.FindByUsername(username, bus)
+	if err != nil {
+		v.shared.Logger.Errorf("error when checking username, err: %s", err.Error())
+		return err
+	}
+
+	location := dto.BusLocation{
+		BusID:     bus.ID,
 		Long:      data.Long,
+		Lat:       data.Lat,
 		Timestamp: time.Now(),
 		Speed:     data.Speed,
 		Heading:   data.Heading,
 	}
 
-	err := v.application.BusService.InsertBusLocationFirebase(id, &location)
+	err = v.application.BusService.InsertBusLocationFirebase(&location)
 	if err != nil {
 		v.shared.Logger.Errorf("error when tracking bus, err: %s", err.Error())
 		return err

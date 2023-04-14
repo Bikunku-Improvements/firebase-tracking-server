@@ -1,13 +1,10 @@
 package bus
 
 import (
-	"fmt"
-	"strconv"
 	"tracking-server/shared"
 	"tracking-server/shared/dto"
 
 	"context"
-	"log"
 
 	firebase "firebase.google.com/go"
 )
@@ -22,7 +19,7 @@ type (
 		InsertBusLocation(location *dto.BusLocation) error
 		FindAllBus(bus *[]dto.Bus) error
 		FindBusLatestLocation(id uint, location *dto.BusLocation) error
-		InsertBusLocationFirebase(id string, location *dto.BusLocationFirebase) error
+		InsertBusLocationFirebase(location *dto.BusLocation) error
 	}
 	service struct {
 		shared shared.Holder
@@ -69,44 +66,30 @@ func (s *service) FindBusLatestLocation(id uint, location *dto.BusLocation) erro
 	return err
 }
 
-func (s *service) InsertBusLocationFirebase(id string, location *dto.BusLocationFirebase) error {
+func (s *service) InsertBusLocationFirebase(location *dto.BusLocation) error {
 	// Connect Google Cloud
 	// Use the application default credentials
 	ctx := context.Background()
 	conf := &firebase.Config{ProjectID: "ta-tracking-f43e5"}
 	app, err := firebase.NewApp(ctx, conf)
 	if err != nil {
-		log.Fatalln(err)
+		s.shared.Logger.Errorf("error when connecting to firebase, err: %s", err)
 		return err
 	}
 
 	client, err := app.Firestore(ctx)
 	if err != nil {
-		log.Fatalln(err)
+		s.shared.Logger.Errorf("error when initiating firebase client, err: %s", err)
 		return err
 	}
 	defer client.Close()
 
 	// Execution
-	idInt, err := strconv.Atoi(id)
-	if err != nil {
-		fmt.Println("Error during conversion")
-		return err
-	}
-
-	// For adding multiple docs in locations
+	s.shared.Logger.Infof("location: %s", location)
+	
 	ref := client.Collection("bus_locations").NewDoc()
-
-	// For updating 1 doc in locations
-	// ref := client.Collection("buses").Doc(id).Collection("locations").Doc(id)
-
 	_, err = ref.Set(ctx, map[string]interface{}{
-		"bus_id": idInt,
-		"number": location.Number,
-		"plate": location.Plate,
-		"status": location.Status,
-		"route": location.Route,
-		"isActive": location.IsActive,
+		"bus_id": int(location.BusID),
 		"longitude": location.Long,
 		"latitude": location.Lat,
 		"timestamp": location.Timestamp,
@@ -114,11 +97,10 @@ func (s *service) InsertBusLocationFirebase(id string, location *dto.BusLocation
 		"heading": location.Speed,
 	})
 	if err != nil {
-		// Handle any errors in an appropriate way, such as returning them.
-		log.Printf("An error has occurred: %s", err)
+		s.shared.Logger.Errorf("error when writing to firebase, err: %s", err.Error())
+		return err
 	}
 
-	// err := s.shared.DB.Delete(&dto.Bus{}, id).Error
 	return err
 }
 

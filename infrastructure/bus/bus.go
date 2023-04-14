@@ -32,7 +32,7 @@ func (c *Controller) Routes(app *fiber.App) {
 		return fiber.ErrUpgradeRequired
 	})
 	bus.Get("/stream", websocket.New(c.trackBusLocation))
-	bus.Post("/track/:id", c.trackBusLocationFirebase)
+	bus.Post("/track", c.trackBusLocationFirebase)
 }
 
 // All godoc
@@ -223,12 +223,14 @@ func (c *Controller) trackBusLocation(ctx *websocket.Conn) {
 // @Summary Track bus location using firebase
 // @Description Put all mandatory parameter
 // @Param id path string true "Bus ID"
-// @Accept  json
-// @Produce  json
-// @Router /bus/track/{id} [post]
+// @Param auth header string true "token"
+// @Param BusLocationMessageFirebase body dto.BusLocationMessageFirebase true "BusLocationMessageFirebase"
+// @Accept json
+// @Produce json
+// @Router /bus/track [post]
 func (c *Controller) trackBusLocationFirebase(ctx *fiber.Ctx) error {
 	var (
-		body dto.BusLocationMessageFirebase
+		body dto.BusLocationMessage
 	)
 
 	err := common.DoCommonRequest(ctx, &body)
@@ -236,11 +238,11 @@ func (c *Controller) trackBusLocationFirebase(ctx *fiber.Ctx) error {
 		return common.DoCommonErrorResponse(ctx, err)
 	}
 
-	id := ctx.Params("id")
+	auth := ctx.Get("auth")
 
-	c.Shared.Logger.Infof("track bus, data: %s", body)
+	c.Shared.Logger.Infof("track bus, data: %s, token: %s", body, auth)
 
-	err = c.Interfaces.BusViewService.TrackBusLocationFirebase(body, id)
+	err = c.Interfaces.BusViewService.TrackBusLocationFirebase(body, auth)
 	if err != nil {
 		return common.DoCommonErrorResponse(ctx, err)
 	}
