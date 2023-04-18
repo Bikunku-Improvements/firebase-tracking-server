@@ -397,25 +397,20 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 		return v.storeBusLocationExperimental(data, query)
 	}
 
-	_, id, err := common.ExtractTokenData(query.Token, v.shared.Env)
+	_, strID, err := common.ExtractTokenData(query.Token, v.shared.Env)
 	if err != nil {
 		v.shared.Logger.Errorf("error when parsing jwt, err: %s", err.Error())
 		return data, err
 	}
+	intID, _ := strconv.Atoi(strID)
 
-	busID, err := strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		v.shared.Logger.Errorf("error when converting id, err: %s", err.Error())
-		return data, err
-	}
-
-	location := dto.BusLocation{
-		BusID:     uint(busID),
-		Lat:       data.Lat,
-		Long:      data.Long,
-		Timestamp: time.Now(),
-		Speed:     data.Speed,
-		Heading:   data.Heading,
+	location := map[string]interface{}{
+		"bus_id": intID,
+		"longitude": data.Long,
+		"latitude": data.Lat,
+		"timestamp": time.Now(),
+		"speed": data.Speed,
+		"heading": data.Heading,
 	}
 
 	go func() {
@@ -430,28 +425,20 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
  * REST track bus location firebase
  */
  func (v *viewService) RestTrackBusLocationFirebase(data dto.BusLocationMessage, token string, client *firestore.Client, firebaseCtx context.Context) error {
-	var (
-		bus = &dto.Bus{}
-	)
-
-	username, _, err := common.ExtractTokenData(token, v.shared.Env)
+	_, strID, err := common.ExtractTokenData(token, v.shared.Env)
 	if err != nil {
-		v.shared.Logger.Errorf("error when extract jwt, err: %s", err.Error())
-	}
-
-	err = v.application.BusService.FindByUsername(username, bus)
-	if err != nil {
-		v.shared.Logger.Errorf("error when checking username, err: %s", err.Error())
+		v.shared.Logger.Errorf("error when parsing jwt, err: %s", err.Error())
 		return err
 	}
+	intID, _ := strconv.Atoi(strID)
 
-	location := dto.BusLocation{
-		BusID:     bus.ID,
-		Long:      data.Long,
-		Lat:       data.Lat,
-		Timestamp: time.Now(),
-		Speed:     data.Speed,
-		Heading:   data.Heading,
+	location := map[string]interface{}{
+		"bus_id": intID,
+		"longitude": data.Long,
+		"latitude": data.Lat,
+		"timestamp": time.Now(),
+		"speed": data.Speed,
+		"heading": data.Heading,
 	}
 
 	err = v.application.BusService.InsertBusLocationFirebase(&location, client, firebaseCtx)
