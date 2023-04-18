@@ -25,6 +25,7 @@ func (c *Controller) Routes(app *fiber.App) {
 	bus := app.Group("/bus")
 	bus.Post("/", c.create)
 	bus.Post("/login", c.login)
+	bus.Post("/loginAlt", c.loginAlt)
 	bus.Delete("/:id", c.delete)
 	bus.Put("/:id", c.edit)
 	bus.Post("/info/:id", c.busInfo)
@@ -94,6 +95,37 @@ func (c *Controller) login(ctx *fiber.Ctx) error {
 	c.Shared.Logger.Infof("login driver, data: %s", body)
 
 	response, err = c.Interfaces.BusViewService.LoginDriver(body)
+	if err != nil {
+		return common.DoCommonErrorResponse(ctx, err)
+	}
+
+	return common.DoCommonSuccessResponse(ctx, response)
+}
+
+// All godoc
+// @Tags Bus
+// @Summary Alternative Driver login
+// @Description Put all mandatory parameter
+// @Param DriverLoginDto body dto.DriverLoginDto true "DriverLoginDto"
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} dto.DriverLoginResponse
+// @Failure 200 {object} dto.DriverLoginResponse
+// @Router /bus/loginAlt [post]
+func (c *Controller) loginAlt(ctx *fiber.Ctx) error {
+	var (
+		body     dto.DriverLoginDto
+		response dto.DriverLoginResponse
+	)
+
+	err := common.DoCommonRequest(ctx, &body)
+	if err != nil {
+		return common.DoCommonErrorResponse(ctx, err)
+	}
+
+	c.Shared.Logger.Infof("login driver, data: %s", body)
+
+	response, err = c.Interfaces.BusViewService.LoginDriverAlt(body)
 	if err != nil {
 		return common.DoCommonErrorResponse(ctx, err)
 	}

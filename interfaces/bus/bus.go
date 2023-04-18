@@ -19,6 +19,7 @@ type (
 	ViewService interface {
 		CreateBusEntry(data dto.CreateBusDto) (dto.CreateBusResponse, error)
 		LoginDriver(data dto.DriverLoginDto) (dto.DriverLoginResponse, error)
+		LoginDriverAlt(data dto.DriverLoginDto) (dto.DriverLoginResponse, error)
 		DeleteBus(id string) error
 		EditBus(data dto.EditBusDto, id string, token string) (dto.EditBusResponse, error)
 		TrackBusLocation(query dto.BusLocationQuery, c *websocket.Conn) (dto.BusLocationMessage, error)
@@ -106,6 +107,42 @@ func (v *viewService) LoginDriver(data dto.DriverLoginDto) (dto.DriverLoginRespo
 }
 
 /**
+ * Alternative login driver account, unique for each bus, using username & id for JWT
+ */
+ func (v *viewService) LoginDriverAlt(data dto.DriverLoginDto) (dto.DriverLoginResponse, error) {
+	var (
+		bus      = &dto.Bus{}
+		response dto.DriverLoginResponse
+	)
+
+	err := v.application.BusService.FindByUsername(data.Username, bus)
+	if err != nil {
+		v.shared.Logger.Errorf("error when finding bus by username, err: %s", err.Error())
+		return response, err
+	}
+
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(bus.Password),
+		[]byte(data.Password),
+	)
+	if err != nil {
+		v.shared.Logger.Errorf("wrong password, err: %s", err.Error())
+		return response, err
+	}
+
+	busIDString := strconv.FormatUint(uint64(bus.ID), 10)
+	token, err := common.NewJWTAlt(bus.Username, busIDString, v.shared.Env)
+	if err != nil {
+		v.shared.Logger.Errorf("error when creating jwt, err: %s", err.Error())
+		return response, err
+	}
+
+	response = bus.ToDriverLoginResponse(token)
+
+	return response, nil
+}
+
+/**
  * Delete bus entry
  */
 func (v *viewService) DeleteBus(id string) error {
@@ -127,7 +164,7 @@ func (v *viewService) EditBus(data dto.EditBusDto, id string, token string) (dto
 		response dto.EditBusResponse
 	)
 
-	username, err := common.ExtractTokenData(token, v.shared.Env)
+	username, _, err := common.ExtractTokenData(token, v.shared.Env)
 	if err != nil {
 		v.shared.Logger.Errorf("error when extract jwt, err: %s", err.Error())
 	}
@@ -177,7 +214,7 @@ func (v *viewService) TrackBusLocation(query dto.BusLocationQuery, c *websocket.
 		return v.storeBusLocationExperimental(data, query)
 	}
 
-	username, err := common.ExtractTokenData(query.Token, v.shared.Env)
+	username, _, err := common.ExtractTokenData(query.Token, v.shared.Env)
 	if err != nil {
 		v.shared.Logger.Errorf("error when parsing jwt, err: %s", err.Error())
 		return data, err
@@ -349,7 +386,6 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
  func (v *viewService) TrackBusLocationFirebase(query dto.BusLocationQuery, c *websocket.Conn, client *firestore.Client, firebaseCtx context.Context) (dto.BusLocationMessage, error) {
 	var (
 		data = dto.BusLocationMessage{}
-		bus  = dto.Bus{}
 	)
 
 	if err := c.ReadJSON(&data); err != nil {
@@ -361,19 +397,20 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 		return v.storeBusLocationExperimental(data, query)
 	}
 
-	username, err := common.ExtractTokenData(query.Token, v.shared.Env)
+	_, id, err := common.ExtractTokenData(query.Token, v.shared.Env)
 	if err != nil {
 		v.shared.Logger.Errorf("error when parsing jwt, err: %s", err.Error())
 		return data, err
 	}
 
-	err = v.application.BusService.FindByUsername(username, &bus)
+	busID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
+		v.shared.Logger.Errorf("error when converting id, err: %s", err.Error())
 		return data, err
 	}
 
 	location := dto.BusLocation{
-		BusID:     bus.ID,
+		BusID:     uint(busID),
 		Lat:       data.Lat,
 		Long:      data.Long,
 		Timestamp: time.Now(),
@@ -397,7 +434,7 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 		bus = &dto.Bus{}
 	)
 
-	username, err := common.ExtractTokenData(token, v.shared.Env)
+	username, _, err := common.ExtractTokenData(token, v.shared.Env)
 	if err != nil {
 		v.shared.Logger.Errorf("error when extract jwt, err: %s", err.Error())
 	}
