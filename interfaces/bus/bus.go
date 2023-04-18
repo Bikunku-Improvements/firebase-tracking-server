@@ -131,7 +131,7 @@ func (v *viewService) LoginDriver(data dto.DriverLoginDto) (dto.DriverLoginRespo
 	}
 
 	busIDString := strconv.FormatUint(uint64(bus.ID), 10)
-	token, err := common.NewJWTAlt(bus.Username, busIDString, v.shared.Env)
+	token, err := common.NewJWTWithID(bus.Username, busIDString, v.shared.Env)
 	if err != nil {
 		v.shared.Logger.Errorf("error when creating jwt, err: %s", err.Error())
 		return response, err
@@ -441,11 +441,11 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 		"heading": data.Heading,
 	}
 
-	err = v.application.BusService.InsertBusLocationFirebase(&location, client, firebaseCtx)
-	if err != nil {
-		v.shared.Logger.Errorf("error when tracking bus, err: %s", err.Error())
-		return err
-	}
+	go func() {
+		v.application.BusService.InsertBusLocationFirebase(&location, client, firebaseCtx)
+		v.shared.Logger.Infof("insert bus location firebase, data: %s", location)
+	}()
+
 	return nil
 }
 

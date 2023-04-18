@@ -18,7 +18,7 @@ func NewJWT(username string, env *config.EnvConfig) (string, error) {
 	return token.SignedString([]byte(env.JWTSecret))
 }
 
-func NewJWTAlt(username string, id string, env *config.EnvConfig) (string, error) {
+func NewJWTWithID(username string, id string, env *config.EnvConfig) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
 		ExpiresAt: time.Now().Add(time.Hour * 8).Unix(),
 		Id: id,

@@ -70,9 +70,11 @@ func (s *service) InsertBusLocationFirebase(location *map[string]interface{}, cl
 	ref := client.Collection("bus_locations").NewDoc()
 	_, err := ref.Set(firebaseCtx, location)
 	if err != nil {
-		s.shared.Logger.Errorf("error when writing to firebase, err: %s", err.Error())
+		s.shared.Logger.Errorf("error when writing to firebase, err: %s", err)
 		return err
 	}
+
+	// defer client.Close()
 
 	return err
 }

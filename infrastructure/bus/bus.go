@@ -38,6 +38,7 @@ func (c *Controller) Routes(app *fiber.App) {
 	})
 	bus.Get("/stream", websocket.New(c.trackBusLocation))
 	bus.Get("/streamfirebase", websocket.New(c.trackBusLocationFirebase))
+	bus.Post("/restfirebase", c.restTrackBusLocationFirebase)
 }
 
 // All godoc
@@ -305,14 +306,14 @@ func (c *Controller) trackBusLocation(ctx *websocket.Conn) {
 
 // All godoc
 // @Tags Bus
-// @Summary Post REST track bus location using firebase
+// @Summary REST track bus location using firebase
 // @Description Put all mandatory parameter
 // @Param id path string true "Bus ID"
 // @Param auth header string true "token"
 // @Param BusLocationMessageFirebase body dto.BusLocationMessageFirebase true "BusLocationMessageFirebase"
 // @Accept json
 // @Produce json
-// @Router /bus/track [post]
+// @Router /bus/restfirebase [post]
 func (c *Controller) restTrackBusLocationFirebase(ctx *fiber.Ctx) error {
 	var (
 		body dto.BusLocationMessage
