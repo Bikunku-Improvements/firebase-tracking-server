@@ -1,6 +1,7 @@
 package bus
 
 import (
+	"context"
 	"sort"
 	"strconv"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"tracking-server/shared/common"
 	"tracking-server/shared/dto"
 
+	"cloud.google.com/go/firestore"
 	"github.com/gofiber/websocket/v2"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -22,7 +24,8 @@ type (
 		TrackBusLocation(query dto.BusLocationQuery, c *websocket.Conn) (dto.BusLocationMessage, error)
 		StreamBusLocation(query dto.BusLocationQuery) []dto.TrackLocationResponse
 		BusInfo(id string) (dto.BusInfoResponse, error)
-		TrackBusLocationFirebase(data dto.BusLocationMessage, token string) error
+		TrackBusLocationFirebase(query dto.BusLocationQuery, c *websocket.Conn, client *firestore.Client, firebaseCtx context.Context) (dto.BusLocationMessage, error)
+		RestTrackBusLocationFirebase(data dto.BusLocationMessage, token string, client *firestore.Client, firebaseCtx context.Context) error
 	}
 	viewService struct {
 		application application.Holder
@@ -339,9 +342,57 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 }
 
 /**
- * Track bus location firebase
+ * Store bus latest location received from web socket
+ * * if the request is using experimental tracking, store it in local map
+ * Bus location store asynchronously
  */
- func (v *viewService) TrackBusLocationFirebase(data dto.BusLocationMessage, token string) error {
+ func (v *viewService) TrackBusLocationFirebase(query dto.BusLocationQuery, c *websocket.Conn, client *firestore.Client, firebaseCtx context.Context) (dto.BusLocationMessage, error) {
+	var (
+		data = dto.BusLocationMessage{}
+		bus  = dto.Bus{}
+	)
+
+	if err := c.ReadJSON(&data); err != nil {
+		v.shared.Logger.Errorf("error when receiving websocket message, err: %s", err.Error())
+		return data, err
+	}
+
+	if query.Experimental == "true" {
+		return v.storeBusLocationExperimental(data, query)
+	}
+
+	username, err := common.ExtractTokenData(query.Token, v.shared.Env)
+	if err != nil {
+		v.shared.Logger.Errorf("error when parsing jwt, err: %s", err.Error())
+		return data, err
+	}
+
+	err = v.application.BusService.FindByUsername(username, &bus)
+	if err != nil {
+		return data, err
+	}
+
+	location := dto.BusLocation{
+		BusID:     bus.ID,
+		Lat:       data.Lat,
+		Long:      data.Long,
+		Timestamp: time.Now(),
+		Speed:     data.Speed,
+		Heading:   data.Heading,
+	}
+
+	go func() {
+		v.application.BusService.InsertBusLocationFirebase(&location, client, firebaseCtx)
+		v.shared.Logger.Infof("insert bus location firebase, data: %s", location)
+	}()
+
+	return data, nil
+}
+
+/**
+ * REST track bus location firebase
+ */
+ func (v *viewService) RestTrackBusLocationFirebase(data dto.BusLocationMessage, token string, client *firestore.Client, firebaseCtx context.Context) error {
 	var (
 		bus = &dto.Bus{}
 	)
@@ -366,7 +417,7 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 		Heading:   data.Heading,
 	}
 
-	err = v.application.BusService.InsertBusLocationFirebase(&location)
+	err = v.application.BusService.InsertBusLocationFirebase(&location, client, firebaseCtx)
 	if err != nil {
 		v.shared.Logger.Errorf("error when tracking bus, err: %s", err.Error())
 		return err
