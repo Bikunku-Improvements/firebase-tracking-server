@@ -38,7 +38,6 @@ func (c *Controller) Routes(app *fiber.App) {
 	})
 	bus.Get("/stream", websocket.New(c.trackBusLocation))
 	bus.Get("/streamfirebase", websocket.New(c.trackBusLocationFirebase))
-	bus.Post("/restfirebase", c.restTrackBusLocationFirebase)
 }
 
 // All godoc
@@ -302,56 +301,6 @@ func (c *Controller) trackBusLocation(ctx *websocket.Conn) {
 			ctx.WriteJSON(data)
 		}
 	}
-}
-
-// All godoc
-// @Tags Bus
-// @Summary REST track bus location using firebase
-// @Description Put all mandatory parameter
-// @Param id path string true "Bus ID"
-// @Param auth header string true "token"
-// @Param BusLocationMessageFirebase body dto.BusLocationMessageFirebase true "BusLocationMessageFirebase"
-// @Accept json
-// @Produce json
-// @Router /bus/restfirebase [post]
-func (c *Controller) restTrackBusLocationFirebase(ctx *fiber.Ctx) error {
-	var (
-		body dto.BusLocationMessage
-	)
-
-	// Connect Google Cloud
-	// Use the application default credentials
-	firebaseCtx := context.Background()
-	conf := &firebase.Config{ProjectID: "ta-tracking-f43e5"}
-	app, err := firebase.NewApp(firebaseCtx, conf)
-	if err != nil {
-		c.Shared.Logger.Errorf("error when connecting to firebase, err: %s", err)
-		return err
-	}
-
-	client, err := app.Firestore(firebaseCtx)
-	if err != nil {
-		c.Shared.Logger.Errorf("error when initiating firebase client, err: %s", err)
-		return err
-	}
-
-	defer client.Close()
-
-	err = common.DoCommonRequest(ctx, &body)
-	if err != nil {
-		return common.DoCommonErrorResponse(ctx, err)
-	}
-
-	auth := ctx.Get("auth")
-
-	c.Shared.Logger.Infof("track bus, data: %s, token: %s", body, auth)
-
-	err = c.Interfaces.BusViewService.RestTrackBusLocationFirebase(body, auth, client, firebaseCtx)
-	if err != nil {
-		return common.DoCommonErrorResponse(ctx, err)
-	}
-
-	return common.DoCommonSuccessResponse(ctx, nil)
 }
 
 func NewController(interfaces interfaces.Holder, shared shared.Holder) Controller {

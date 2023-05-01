@@ -26,7 +26,6 @@ type (
 		StreamBusLocation(query dto.BusLocationQuery) []dto.TrackLocationResponse
 		BusInfo(id string) (dto.BusInfoResponse, error)
 		TrackBusLocationFirebase(query dto.BusLocationQuery, c *websocket.Conn, client *firestore.Client, firebaseCtx context.Context) (dto.BusLocationMessage, error)
-		RestTrackBusLocationFirebase(data dto.BusLocationMessage, token string, client *firestore.Client, firebaseCtx context.Context) error
 	}
 	viewService struct {
 		application application.Holder
@@ -392,6 +391,7 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 		v.shared.Logger.Errorf("error when receiving websocket message, err: %s", err.Error())
 		return data, err
 	}
+	now := time.Now()
 
 	if query.Experimental == "true" {
 		return v.storeBusLocationExperimental(data, query)
@@ -408,7 +408,7 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 		"bus_id": intID,
 		"longitude": data.Long,
 		"latitude": data.Lat,
-		"timestamp": time.Now(),
+		"timestamp": now,
 		"speed": data.Speed,
 		"heading": data.Heading,
 	}
@@ -419,34 +419,6 @@ func (v *viewService) streamBusLocationExperimental() []dto.TrackLocationRespons
 	}()
 
 	return data, nil
-}
-
-/**
- * REST track bus location firebase
- */
- func (v *viewService) RestTrackBusLocationFirebase(data dto.BusLocationMessage, token string, client *firestore.Client, firebaseCtx context.Context) error {
-	_, strID, err := common.ExtractTokenData(token, v.shared.Env)
-	if err != nil {
-		v.shared.Logger.Errorf("error when parsing jwt, err: %s", err.Error())
-		return err
-	}
-	intID, _ := strconv.Atoi(strID)
-
-	location := map[string]interface{}{
-		"bus_id": intID,
-		"longitude": data.Long,
-		"latitude": data.Lat,
-		"timestamp": time.Now(),
-		"speed": data.Speed,
-		"heading": data.Heading,
-	}
-
-	go func() {
-		v.application.BusService.InsertBusLocationFirebase(&location, client, firebaseCtx)
-		v.shared.Logger.Infof("insert bus location firebase, data: %s", location)
-	}()
-
-	return nil
 }
 
 func NewViewService(application application.Holder, shared shared.Holder) ViewService {

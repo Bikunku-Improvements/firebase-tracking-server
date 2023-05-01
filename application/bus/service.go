@@ -73,9 +73,6 @@ func (s *service) InsertBusLocationFirebase(location *map[string]interface{}, cl
 		s.shared.Logger.Errorf("error when writing to firebase, err: %s", err)
 		return err
 	}
-
-	// defer client.Close()
-
 	return err
 }
 
