@@ -15,6 +15,7 @@ type EnvConfig struct {
 	JWTSecret    string `mapstructure:"JWT_SECRET"`
 	ENV          string `mapstructure:"ENV"`
 	Experimental string `mapstructure:"EXPERIMENTAL"`
+	GoogleApplicationCredentials string `mapstructure:"GOOGLE_APPLICATION_CREDENTIALS"`
 }
 
 func NewEnvConfig(log *logrus.Logger) (*EnvConfig, error) {

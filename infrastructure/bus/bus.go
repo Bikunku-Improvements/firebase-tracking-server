@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
+	"google.golang.org/api/option"
 
 	"context"
 
@@ -262,22 +263,19 @@ func (c *Controller) trackBusLocation(ctx *websocket.Conn) {
  * @param experimentalId bus identifier for bot
  */
  func (c *Controller) trackBusLocationFirebase(ctx *websocket.Conn) {
-	// Connect Google Cloud
-	// Use the application default credentials
 	firebaseCtx := context.Background()
-	conf := &firebase.Config{ProjectID: "ta-tracking-f43e5"}
-	app, err := firebase.NewApp(firebaseCtx, conf)
+	sa := option.WithCredentialsFile(c.Shared.Env.GoogleApplicationCredentials)
+	c.Shared.Logger.Infof("sasa, %s", sa)
+	app, err := firebase.NewApp(firebaseCtx, nil, sa)
 	if err != nil {
-		c.Shared.Logger.Errorf("error when connecting to firebase, err: %s", err)
-		return
+		c.Shared.Logger.Infof("error: %v", err)
 	}
 
 	client, err := app.Firestore(firebaseCtx)
 	if err != nil {
-		c.Shared.Logger.Errorf("error when initiating firebase client, err: %s", err)
-		return
+		c.Shared.Logger.Infof("error: %v", err)
 	}
-	
+
 	defer func() {
 		client.Close()
 		ctx.Close()
