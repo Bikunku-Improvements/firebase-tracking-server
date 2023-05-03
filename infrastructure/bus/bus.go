@@ -265,15 +265,14 @@ func (c *Controller) trackBusLocation(ctx *websocket.Conn) {
  func (c *Controller) trackBusLocationFirebase(ctx *websocket.Conn) {
 	firebaseCtx := context.Background()
 	sa := option.WithCredentialsFile(c.Shared.Env.GoogleApplicationCredentials)
-	c.Shared.Logger.Infof("sasa, %s", sa)
 	app, err := firebase.NewApp(firebaseCtx, nil, sa)
 	if err != nil {
-		c.Shared.Logger.Infof("error: %v", err)
+		c.Shared.Logger.Infof("error connecting to firebase: %v", err)
 	}
 
 	client, err := app.Firestore(firebaseCtx)
 	if err != nil {
-		c.Shared.Logger.Infof("error: %v", err)
+		c.Shared.Logger.Infof("error initiating firebase client: %v", err)
 	}
 
 	defer func() {
