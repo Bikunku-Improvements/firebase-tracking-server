@@ -1,3 +1,4 @@
 logger.log
 .idea
 tracking-server
+serviceAccountKey.json
